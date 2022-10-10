@@ -1,0 +1,212 @@
+-- 1 LES MODIFICATIONS DE L'ARCHITECTURE PROPROSEE 1 --
+
+Area.java
+
+	Methode : private void updateCamera()
+		Changement : Si le viewCandidate n'est pas null, alors la camera suit le personnage jusqu'a une certaine distance des bords de la grille.
+			Justification : Empecher le joueur de voir l'exterieur de l'Area (tout noir)
+			
+Player.java
+	
+	Methode : public void enterArea(Area area, DiscreteCoordinates position)
+		Changement : Selon l'Area spécifique (switch), le viewCandidate de l'Area sera soit null, soit le Player. 
+			Justification : Dans certains Area, on veut pas du tout que la camera suive le joueur.
+			
+
+-- 2 LES CLASSES ET INTERFACES AJOUTEES 2 --
+
+Packages: Si deux classes sont dans le meme package, c'est qu'ils sont en general lies soit : 
+	Par un lien semantique
+	Par un lien d'heritage
+	Par un lien de possession (un ARPGInventory HAS A : ARPGPlayer) 
+
+/// General ARPG ///
+
+	class ARPG : EST UN RPG.
+		But : C'est le jeu. Il initialise les ARPGAreas, et l'ARPGPlayer, et gere la mort de l'ARPGPlayer.
+
+	class ARPGBehavior : EST UN AreaBehavior
+		But : C'est la grille du jeu. Donc elle contient la class imbriquee ARPGCell qui herite de Cell. Elle contient aussi 
+			l'enumeration ARPGCellType : les types de ARPGCell.
+
+	class ARPGController : Extends rien, implements rien. Updates selon l'etat courant du Keyboard.
+		But : Destine comme attribut de l'ARPGPlayer. Permet de modulariser les comportements varies des controles du joueur. 
+		  
+Ces trois classes se trouvent dans le meme paquetage, car elles representent des elements du jeu ARPG qui sont plus generaux et lies a l'utilisateur.
+
+/// Inventory /// 	
+
+	abstract class Inventory : Extends rien. Implements rien.
+		But : Represente la notion generale d'un inventaire qui peut contenir des InventoryItems (relation A UN).
+	
+	interface InventoryItem : Extends rien. 
+		But : Represente un objet dont on peut demander le prix, le poids, et le nom.
+	
+Inventory et InventoryItem se trouvent dans le paquetage rpg.inventory car ils sont senses etre utilisables par d'autres jeux de type RPG.
+	
+	class ARPGInventory : EST UN Inventory.
+		But : Destine comme attribut de l'ARPGPlayer. Ajoute un total d'argent (acces protege aux setters) et une fortune.
+		
+	enum ARPGItem : AGIT COMME UN InventoryItem.
+		But : Ce sont les items qu'un ARPGPlayer peut mettre dans son ARPGInventory.
+
+ARPGInventory et ARPGItem se trouvent dans le paquetage arpg.inventory car ce sont des implementations specifiques de l'inventaire general.
+
+/// Interfaces /// 
+
+	interface Mortal : Extends rien.
+		But : caracterise les Actors dont on peut demander les points de vie et les faiblesses.
+			Et qui sont capables de perdre leurs points de vie et mourir.
+	
+	interface SwimmableEntity : Extends rien.
+		But : caracterise les Entities capables de deplacer dans les ARPGCells de type WATER
+	
+	interface FlyableEntity : Extends rien.
+		But : caracterise les Entities capables de passer par dessus les ARPGCells qui sont flyable
+
+Ces trois interfaces se trouvent dans le paquetage arpg.actor car ils sont fortement lies aux actors du jeu ARPG, et pas de jeu RPG en general.
+		
+/// Player /// 
+
+	class ARPGPlayer : EST UN Player, AGIT COMME UN Mortal, SwimmableEntity, Inventory.Holder.
+		But : C'est le personnage principal du jeu. Il est controllable, capable de mourir, capable de nager, deteneur d'inventaire,
+			invincible pendant un court moment apres avoir recu des dommages. 
+			Possede une classe privee imbriquee ARPGPlayerHandler qui s'occupe de ses interactions avec les Interactables.
+			Possede un enum prive imbrique ARPGPlayerState qui liste ses etats possibles.
+			
+	class ARPGPlayerStatusGUI : AGIT COMME UN Graphics
+		But : Generer et afficher certains attributs d'un ARPGPlayer : ses points de vie, son equipement, son argent, et un message de mort.
+			HAS A ARPGPlayer.
+
+Ces deux classes se trouvent dans le paquetage arpg.actor car ils expriment les deux une relation de A UN l'un a l'autre.
+ARPGPlayer a un ARPGPlayerStatusGui et ARPGPlayerStatusGUI a un ARPGPlayer.
+			
+/// Monster /// 
+	
+	abstract class Monster : EST UN MoveableAreaEntity, AGIT COMME UN Interactor, Mortal
+	
+	class DarkLord : EST UN Monster.
+	
+	class FlameSkull : EST UN Monster, AGIT COMME UN FlyableEntity.
+	
+	class LogMonster : EST UN Monster.
+	
+Ces quatres classes se trouvent dans le meme paquetage arpg.actor car ce sont simplement des actors du jeu ARPG.
+	
+/// Projectile /// 
+
+	abstract class Projectile : EST UN MovableAreaEntity, AGIT COMME UN Interactor, FlyableEntity
+
+	class Arrow : EST UN Projectile
+		But : Destine a etre tire par l'arc du ARPGPlayer lors de son utilisation en tant que ARPGItem.
+		
+	class MagicWaterProjectile : EST UN Projectile
+		But : Destine a etre tire par la baguette magique de l'ARPGPlayer lors de son utilisation en tant que ARPGItem.
+		
+Ces 3 classes se trouvent dans le meme paquetage arpg.actor car Projectile implemente FlyableEntity, qui est une interface liee a ce jeu ARPG specifique.
+De plus, Projectile est une classe abstraite dont les classes enfantes Arrow et MagicWaterProjectile sont des actors concretes du jeu ARPG.
+
+
+/// CollectableEntity /// 
+	
+	abstact class CollectableAreaEntity : EST UN AreaEntity.
+		But : Represente la notion abstraite d'un AreaEntity qui peut etre collecte par un Player.
+
+La classe abstraite CollectableAreaEntity n'est pas forcement liee au jeu ARPG, et donc se trouve dans le paquetage areagame.actor, car c'est un actor de jeu d'aires.
+
+	class Heart : EST UN CollectableEntity
+		But : Soigne le joueur d'une certaine valeur.
+	
+	class Coin : EST UN CollectableAreaEntity
+		But : A une certaine valeur.
+		
+	class Key : EST UN CollectableEntity
+		But : Servira de cle pour la CastleDoor.
+	
+	class Staff : EST UN CollectableAreaEntity
+		But : Rajoute un MagicWaterStaff dans l'inventaire du Player.
+
+Ces 3 classes se trouvent dans le meme paquetage arpg.actor car ils sont specifiques au jeu ARPG, et ramassables par les ARPGPlayer.
+
+	
+/// Enums /// 
+	
+	public enum DamageType : Extends rien, implements rien.
+
+L'enum DamageType se trouve dans le paquetage arpg.actor car il est destine a etre utilise par les actors de ce packetage.
+
+	private enum ARPGPlayerState / LogMonsterState / FlameSkullState / DarkLordState / (j'en ai peut-etre oublie un..) : Extends rien, implements rien.
+		But : Sont imbriquees dans leurs classes meres, car destinees a etre utilisees seulement par celles-ci.
+
+Les enums sus-mentionnes sont des enum imbriques ("interieures"), donc doivent se trouver dans le meme paquetage que leurs classes "exterieures".
+
+	public enum ARPGItem (deja mentionne)
+	
+	public enum ARPGControllerButton : Extends rien, implements rien.
+		But : Represente une sorte d'action qui peut etre prise par le joueur et l'associe a un "bouton" ARPGControllerButton abstrait.
+
+Pareil que pour les enum imbriques ARPGPlayerState, etc.
+
+/// AreaEntities /// 
+
+	class Grass : EST UN AreaEntity.
+		But : Interactable. Peut etre coupe.
+	
+	class Bomb : EST UN AreaEntity, AGIT COMME UN Interactor
+		But : Destine a etre pose par l'ARPGPlayer lors de son utilisation en tant que ARPGItem.
+	
+	class CastleDoor : EST UN Door
+		But : Comme un door mais avec un visuel.
+	
+	class FireSpell : EST UN AreaEntity, AGIT COMME UN Interactor, FlyableEntity
+		But : Sort de feu se propageant en ligne droite en demandant des interactions de contact. Peut spawner sur toute ARPGCell qui est flyable.
+
+Ces trois classes se trouvent dans le paquetage arpg.actor car ils sont specifiques au jeu ARPG, et ce sont des actors.
+
+	class AnimatedDecoration : EST UN AreaEntity
+		But : Sert a decorer un Area. C'est donc un Entity non-mobile qui occupe des Cells mais qui est traversable et ne recoit jamais d'interactions,
+				et peut entrer dans toute ARPGCell.
+				
+La class AnimatedDecoration se trouve dans le paquetage areagame.actor car ce n'est pas lie au jeu ARPG specifique, puis est de plus un actor de jeu d'aires.
+
+/// Area // 
+
+	abstract class ARPGArea : EST UN Area
+	
+	class Chateau / Ferme / Route / RouteChateau / RouteTemple / Temple / Village : EST UN ARPGArea
+
+Ces classes se trouvent tous dans le paquetage arpg.area car ce sont les aires du jeu ARPG.
+
+-- 3 LE COMPORTEMENT ATTRIBUE A CHACUN DES COMPOSANTS AJOUTES 3 --
+
+/// CLASSES ///
+
+class ARPGController
+	Elle a comme fonctionalite de demander si une action associee a une touche du clavier peut etre accomplie : la methode isReady(ARPGControllerButton)
+	Cela modularise et emballe des fonctionalites communes, comme le fait de devoir lever la touche du clavier avant de pouvoir refaire une
+	meme action, ou de pouvoir la tenir appuyee.
+	
+class AnimationDecoration (enonce plus haut)
+
+/// BONUS :P ///
+
+Les types de ARPGCell : 
+	WATER	: Engage l'etat de natation SWIMMING de l'ARPGPlayer. 
+	SPIKES	: Cause des dommages au joueur (999.f).
+					Il est possible de rouler par dessus grace a l'invincibilite garantie par une roulade.
+
+Nouveau mode de deplacement : 
+	SWIMMING : Lorsqu'un ARPGPlayer est en train de nager (apres contact avec une ARPGCell de type WATER), il ne peut plus utiliser ses Items.
+
+Nouveau comportement complexe : 
+	Periodes d'invincibilite : Lorsqu'un Monster ou un ARPGPlayer prennent des dommages au travers la methode takeDamage(), alors ils sont
+				invulnerables au degats consecutifs pendant un certain nombre de frames. Cela engage egalement un clignotement du Monster ou
+				de l'ARPGPlayer.
+
+Nouveau controle avance : 
+	Rouler : Engage l'etat de roulade ROLLING de l'ARPGPlayer avec la touche R. Celui-ci augmente son vitesse de deplacement et garantit
+				une courte periode d'invincibilite. La roulade peut etre interrompue.
+				
+Acteurs de decor animes : 
+	La chute d'eau dans Route et les baby log monsters dans Ferme.
+	
