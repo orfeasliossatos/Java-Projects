@@ -1,5 +1,4 @@
 # Java-Projects
-Projects carried out during "Introduction to Programming" and "Programming Practical" at EPFL, and a personal project.
 
 Tablrr is a table layout designer designed and implemented by myself. It handles reservations, priority seating, seating preferences, combining tables to accomodate groups, printing, and saving designs from different calendar days. 
 
